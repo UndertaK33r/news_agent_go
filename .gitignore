@@ -1,0 +1,21 @@
+# Binaries
+news_agent.exe
+*.exe
+*.exe~
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Data
+news_data.db
+output/daily_reports/
+data/
+
+# Secrets
+.env
+
+# OS
+.DS_Store
+Thumbs.db

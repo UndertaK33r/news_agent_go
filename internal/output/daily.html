@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日知录 · {{ .LunarDate }}</title>
+    <style>
+        :root {
+            --paper: #f7f2e6;
+            --paper-deep: #ede4d0;
+            --ink: #3d3226;
+            --ink-light: #7a7063;
+            --ink-faint: #b5aa9a;
+            --border: #c8b896;
+            --border-light: #dcd3c0;
+            --accent: #8b2500;
+            --accent-light: #c4413f;
+            --gold: #b8945c;
+            --shadow: rgba(61, 50, 38, 0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: "Noto Serif SC", "STSong", "Songti SC", "SimSun", "宋体", serif;
+            background: var(--paper);
+            background-image:
+                radial-gradient(ellipse at 30% 10%, rgba(139, 37, 0, 0.03) 0%, transparent 70%),
+                radial-gradient(ellipse at 70% 90%, rgba(184, 148, 92, 0.04) 0%, transparent 60%),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(180, 160, 130, 0.03) 2px,
+                    rgba(180, 160, 130, 0.03) 4px
+                );
+            color: var(--ink);
+            line-height: 1.9;
+            min-height: 100vh;
+            padding: 40px 0 60px;
+        }
+
+        .scroll {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .title-frame {
+            border: 3px double var(--border);
+            padding: 32px 40px 28px;
+            text-align: center;
+            margin-bottom: 36px;
+            position: relative;
+            background: linear-gradient(180deg, rgba(247,242,230,0.9) 0%, rgba(237,228,208,0.5) 100%);
+        }
+
+        .title-frame::before,
+        .title-frame::after {
+            content: "◆";
+            position: absolute;
+            color: var(--accent);
+            font-size: 10px;
+        }
+        .title-frame::before { top: -6px; left: -6px; }
+        .title-frame::after { bottom: -6px; right: -6px; }
+
+        .title-main {
+            font-family: "KaiTi", "STKaiti", "楷体", serif;
+            font-size: 42px;
+            letter-spacing: 20px;
+            color: var(--ink);
+            margin-bottom: 12px;
+            text-shadow: 1px 1px 0 rgba(139, 37, 0, 0.08);
+        }
+
+        .title-date {
+            font-family: "STSong", "Songti SC", "SimSun", "宋体", serif;
+            font-size: 15px;
+            color: var(--ink-light);
+            letter-spacing: 4px;
+        }
+
+        .title-date .lunar { color: var(--accent); }
+
+        .stats-line {
+            margin-top: 14px;
+            font-size: 12px;
+            color: var(--ink-faint);
+            letter-spacing: 2px;
+        }
+
+        .morning-brief {
+            border-left: 3px solid var(--accent);
+            padding: 16px 20px;
+            margin-bottom: 36px;
+            background: linear-gradient(90deg, rgba(139, 37, 0, 0.03) 0%, transparent 100%);
+        }
+
+        .morning-brief .label {
+            font-family: "KaiTi", "STKaiti", "楷体", serif;
+            font-size: 18px;
+            color: var(--accent);
+            letter-spacing: 6px;
+            margin-bottom: 14px;
+        }
+
+        .morning-brief .content {
+            font-size: 15px;
+            line-height: 2;
+            color: var(--ink);
+            white-space: pre-wrap;
+        }
+
+        .section-divider {
+            display: flex;
+            align-items: center;
+            margin: 36px 0 24px;
+        }
+
+        .section-divider .line {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .section-divider .title {
+            font-family: "KaiTi", "STKaiti", "楷体", serif;
+            font-size: 20px;
+            letter-spacing: 8px;
+            color: var(--ink);
+            white-space: nowrap;
+            padding: 0 16px;
+        }
+
+        .entry {
+            border: 1px solid var(--border-light);
+            padding: 24px 28px;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.3);
+            position: relative;
+        }
+
+        .entry:hover { background: rgba(255,255,255,0.6); }
+
+        .entry-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--ink);
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+
+        .entry-meta {
+            font-size: 12px;
+            color: var(--ink-faint);
+            margin-bottom: 16px;
+        }
+
+        .entry-meta .source-tag { color: var(--accent); font-weight: 500; }
+
+        .entry-meta .dot { margin: 0 6px; color: var(--border); }
+
+        .entry-meta .count { background: rgba(180,160,130,0.2); padding: 1px 8px; }
+
+        .entry-analysis {
+            font-size: 14px;
+            line-height: 2;
+            color: var(--ink);
+            white-space: pre-wrap;
+        }
+
+        .entry-sources {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px dotted var(--border-light);
+            font-size: 12px;
+            color: var(--ink-faint);
+        }
+
+        .entry-sources a {
+            color: var(--ink-light);
+            text-decoration: none;
+            border-bottom: 1px dotted var(--ink-faint);
+            margin-right: 10px;
+        }
+
+        .entry-sources a:hover {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .editorial {
+            border: 2px solid var(--border);
+            padding: 28px 32px;
+            margin-top: 36px;
+            background: linear-gradient(180deg, rgba(139,37,0,0.02) 0%, rgba(184,148,92,0.04) 100%);
+            position: relative;
+        }
+
+        .editorial::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), transparent 60%);
+        }
+
+        .editorial .label {
+            font-family: "KaiTi", "STKaiti", "楷体", serif;
+            font-size: 22px;
+            color: var(--accent);
+            letter-spacing: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .editorial .content {
+            font-size: 15px;
+            line-height: 2.1;
+            color: var(--ink);
+            white-space: pre-wrap;
+        }
+
+        .seal {
+            text-align: center;
+            margin-top: 48px;
+            padding-bottom: 20px;
+        }
+
+        .seal-stamp {
+            display: inline-block;
+            border: 2px solid var(--accent);
+            color: var(--accent);
+            padding: 10px 20px;
+            font-family: "KaiTi", "STKaiti", "楷体", serif;
+            font-size: 13px;
+            letter-spacing: 3px;
+            transform: rotate(-3deg);
+            opacity: 0.75;
+            user-select: none;
+        }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 11px;
+            color: var(--ink-faint);
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="scroll">
+        <div class="title-frame">
+            <div class="title-main">日 知 录</div>
+            <div class="title-date">
+                <span class="lunar">{{ .LunarDate }}</span>
+                &nbsp;·&nbsp;{{ .Date }}
+            </div>
+            <div class="stats-line">
+                {{ .TotalNews }} 条消息 &nbsp;|&nbsp; {{ .TotalSources }} 个来源 &nbsp;|&nbsp; {{ .TotalTopics }} 则分析
+            </div>
+        </div>
+
+        {{ if .MorningBrief }}
+        <div class="morning-brief">
+            <div class="label">今 日 三 事</div>
+            <div class="content">{{ .MorningBrief }}</div>
+        </div>
+        {{ end }}
+
+        {{ range $cat, $items := .Categories }}
+        <div class="section-divider">
+            <div class="line"></div>
+            <div class="title">{{ $cat }}</div>
+            <div class="line"></div>
+        </div>
+
+        {{ range $items }}
+        <div class="entry">
+            <div class="entry-title">{{ .Title }}</div>
+            <div class="entry-meta">
+                {{ if .Sources }}
+                <span class="source-tag">{{ (index .Sources 0).Name }}</span>
+                <span class="dot">·</span>
+                {{ end }}
+                <span>{{ .PublishedAt }}</span>
+                {{ if gt .ArticleCount 1 }}
+                <span class="dot">·</span>
+                <span class="count">综合 {{ .ArticleCount }} 篇</span>
+                {{ end }}
+            </div>
+            <div class="entry-analysis">{{ .Text }}</div>
+            {{ if .Sources }}
+            <div class="entry-sources">
+                出处：
+                {{ range .Sources }}
+                <a href="{{ .URL }}" target="_blank">{{ .Name }}</a>
+                {{ end }}
+            </div>
+            {{ end }}
+        </div>
+        {{ end }}
+        {{ end }}
+
+        {{ if .EveningEssay }}
+        <div class="editorial">
+            <div class="label">今 日 总 评</div>
+            <div class="content">{{ .EveningEssay }}</div>
+        </div>
+        {{ end }}
+
+        <div class="seal">
+            <div class="seal-stamp">News Agent 造</div>
+        </div>
+        <div class="footer-note">
+            每日自动采集 &nbsp;·&nbsp; AI 分析生成 &nbsp;·&nbsp; {{ .Date }}
+        </div>
+    </div>
+</body>
+</html>
